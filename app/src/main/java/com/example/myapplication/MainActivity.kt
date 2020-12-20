@@ -51,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         // Android 4.1 and higher simple way to request fullscreen.
         mGameView!!.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
         setContentView(mGameView)
+
     }
 
     /**
