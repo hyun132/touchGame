@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.*
 import android.util.AttributeSet
 import android.util.Log
@@ -9,6 +10,7 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
+import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_game.view.*
 import kotlinx.android.synthetic.main.activity_main.view.*
 import java.util.*
@@ -60,10 +62,14 @@ class GameView @JvmOverloads constructor(
     var circleArray = mutableListOf<Bitmap>()
 
     lateinit var scoreBoard: Bitmap
+    lateinit var retry: Bitmap
+    lateinit var save: Bitmap
+    lateinit var star: Bitmap
 
     private var score = 0
 
     var life = 3
+    var starArr= arrayListOf<Bitmap>()
 
     var timer = Timer()
 
@@ -87,13 +93,21 @@ class GameView @JvmOverloads constructor(
         )
 
         var originSqare = BitmapFactory.decodeResource(resources, R.drawable.purplesquare)
-        scoreBoard=Bitmap.createScaledBitmap(
-            originSqare, mViewWidth*3/5, mViewHeight*3/5, true)
+        scoreBoard = Bitmap.createScaledBitmap(
+            originSqare, mViewWidth * 3 / 5, mViewHeight * 3 / 5, true
+        )
 
         val circle1 = BitmapFactory.decodeResource(resources, R.drawable.fancycircle)
         val circle2 = BitmapFactory.decodeResource(resources, R.drawable.bluecircle)
         circleArray.add(Bitmap.createScaledBitmap(circle1, 200, 200, true))
         circleArray.add(Bitmap.createScaledBitmap(circle2, 200, 200, true))
+
+        val originRetry = BitmapFactory.decodeResource(resources, R.drawable.retry)
+        val originSave = BitmapFactory.decodeResource(resources, R.drawable.save)
+        val originStar = BitmapFactory.decodeResource(resources, R.drawable.lifestar)
+        retry = Bitmap.createScaledBitmap(originRetry, 200, 200, true)
+        save = Bitmap.createScaledBitmap(originSave, 200, 200, true)
+        star = Bitmap.createScaledBitmap(originStar, 100, 100, true)
 
 //        mBitmap = BitmapFactory.decodeResource(
 //            mContext.resources, R.drawable.rocket
@@ -101,6 +115,11 @@ class GameView @JvmOverloads constructor(
 //        mBitmap.cr
 //        setUpBitmap()
         roketArray.add(setUpBitmap())
+        starArr.clear()
+        starArr.add(star)
+        starArr.add(star)
+        starArr.add(star)
+        starArr.add(star)
 //        roketArray.add(setUpBitmap())
     }
 
@@ -118,38 +137,33 @@ class GameView @JvmOverloads constructor(
 
 //                canvas.save()
                 backgourndBitmap?.let { canvas.drawBitmap(it, 0F, 0F, null) }
-
-//                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-//                        canvas.clipPath(mPath, Region.Op.DIFFERENCE)
-//                    } else {
-//                        canvas.clipOutPath(mPath)
-//                    }
-
-                if (life < 0) {
-//            var intent=Intent(rootView.context,)
-//            intent.putExtra("score",score)
-//            rootView.context.startActivity(intent)
-
-                    whitePaint.color = Color.WHITE
-                    whitePaint.textSize = 100F
-                    blackPaint.color = Color.BLACK
-                    blackPaint.textSize = 100F
+                whitePaint.color = Color.WHITE
+                whitePaint.textSize = 100F
+                blackPaint.color = Color.BLACK
+                blackPaint.textSize = 100F
+                if (life <= 0) {
                     Log.d("life is under 0", "true")
-
-//                    Log.d("w,h","$mViewWidth , $mViewHeight ")
-//                    Log.d("w,h","${(mViewWidth / 6).toFloat()} , ${(mViewHeight / 5).toFloat()} ")
-//                    Log.d("w,h","${(mViewWidth / 6).toFloat()} , ${(mViewHeight / 5).toFloat()} ")
 
 //                    var whiteboard=RectF(mViewWidth/5F,mViewHeight/5F,mViewWidth*4/5F,mViewHeight*4/5F)
 //                    canvas.drawRect(
 //                        whiteboard,
 //                        whitePaint
 //                    )
-                    canvas.drawBitmap(scoreBoard,mViewWidth/5F,mViewHeight/5F,  null)
+                    canvas.drawBitmap(scoreBoard, mViewWidth / 5F, mViewHeight / 5F, null)
                     canvas.drawText(
                         "Score : $score", (mViewWidth * 2 / 5).toFloat(),
-                        mViewHeight*2/5F, whitePaint
+                        mViewHeight * 2 / 5F, whitePaint
                     )
+                    canvas.drawBitmap(retry, mViewWidth*2 / 6F, mViewHeight*6 / 13F, null)
+                    canvas.drawBitmap(save, mViewWidth*8 / 14F, mViewHeight*6 / 13F, null)
+
+                    if (touchX>mViewWidth*2 / 6F && touchX<mViewWidth*2 / 6F + 200 && touchY>mViewHeight*6 / 13F && touchY<mViewHeight*6 / 13F+200){
+
+                        Log.d("save","click save, ${mViewWidth*2 / 6F}, ${mViewHeight*6 / 13F}")
+//                        Toast.makeText(rootView.context,"재시작",Toast.LENGTH_SHORT).show()
+                    }else if(touchX>mViewWidth*2 / 6F && touchX<mViewWidth*2 / 6F + 200 && touchY>mViewHeight*6 / 13F && touchY<mViewHeight*6 / 13F+200){
+                        Toast.makeText(this.context,"저장되었습니다.",Toast.LENGTH_SHORT).show()
+                    }
 
                 } else {
                     var iter = roketArray.listIterator()
@@ -168,6 +182,7 @@ class GameView @JvmOverloads constructor(
                             if (System.currentTimeMillis() - bRoket.time > 3000) {
                                 iter.set(setUpBitmap())
                                 life--
+                                starArr.removeAt(0)
                                 Log.d("life", life.toString())
                             } else canvas.drawBitmap(
                                 bRoket.circleImg,
@@ -177,20 +192,16 @@ class GameView @JvmOverloads constructor(
                             )
                         }
                     }
+
+                    for(i in 0 until starArr.size-1){
+                        canvas.drawBitmap(star,(mViewWidth-100F*(i+1)),0F,null)
+                    }
+
                     canvas.drawText(
                         score.toString(), 50F, 100F, whitePaint
                     )
                 }
 
-
-//                if (x > mWinnerRect!!.left && x < mWinnerRect!!.right && y > mWinnerRect!!.top && y < mWinnerRect!!.bottom) {
-////                    canvas.drawColor(Color.WHITE)
-//                    canvas.drawBitmap(mBitmap!!, mBitmapX.toFloat(), mBitmapY.toFloat(), mPaint)
-//
-//                    canvas.drawText(
-//                        score.toString(), 50F, 100F, mPaint
-//                    )
-//                }
                 // Clear the path data structure.
 //                mPath.rewind()
                 // Restore the previously saved (default) clip and matrix state.
@@ -262,6 +273,13 @@ class GameView @JvmOverloads constructor(
     fun reset() {
         score = 0
         life = 3
+        roketArray.clear()
+        roketArray.add(setUpBitmap())
+        starArr.clear()
+        starArr.add(star)
+        starArr.add(star)
+        starArr.add(star)
+        starArr.add(star)
     }
 
     fun shake() {
@@ -277,20 +295,36 @@ class GameView @JvmOverloads constructor(
         Log.d("Touch", "${event.action}")
         var iter = roketArray.listIterator()
         if (event.action == MotionEvent.ACTION_UP) {
-            while (iter.hasNext()) {
-                var bRoket = iter.next()
+
+            if (life<0){
                 Log.d(
                     "Touch position",
-                    "$x, $y, ${bRoket.roketRect.left}, ${bRoket.roketRect.right}, ${bRoket.roketRect.top}, ${bRoket.roketRect.bottom}"
+                    "$x, $y, ${mViewWidth*2 / 6F}, ${mViewWidth*2 / 6F + 200}, ${mViewHeight*6 / 13F}, ${mViewHeight*6 / 13F+200}"
                 )
-                if (x > bRoket.roketRect.left && x < bRoket.roketRect.right && y > bRoket.roketRect.top && y < bRoket.roketRect.bottom) {
-                    score++
-                    Log.d("Score", score.toString())
-                    iter.set(setUpBitmap())
-                    touchX = x
-                    touchX = y
-                    invalidate()
-                    break
+                if ( x>mViewWidth*2 / 6F && x<(mViewWidth*2 / 6F + 200) && y>mViewHeight*6 / 13F && y<(mViewHeight*6 / 13F+200)){
+                Log.d("click save", "$life")
+                reset()
+                invalidate()
+                touchX = x
+                touchX = y
+            }
+            }else {
+
+                while (iter.hasNext()) {
+                    var bRoket = iter.next()
+                    Log.d(
+                        "Touch position",
+                        "$x, $y, ${bRoket.roketRect.left}, ${bRoket.roketRect.right}, ${bRoket.roketRect.top}, ${bRoket.roketRect.bottom}"
+                    )
+                    if (x > bRoket.roketRect.left && x < bRoket.roketRect.right && y > bRoket.roketRect.top && y < bRoket.roketRect.bottom) {
+                        score++
+                        Log.d("Score", score.toString())
+                        iter.set(setUpBitmap())
+                        touchX = x
+                        touchX = y
+                        invalidate()
+                        break
+                    }
                 }
             }
 
