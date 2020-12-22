@@ -3,6 +3,8 @@ package com.example.myapplication
 import android.content.Context
 import android.content.Intent
 import android.graphics.*
+import android.media.AudioManager
+import android.media.SoundPool
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
@@ -11,25 +13,14 @@ import android.view.SurfaceView
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.Toast
+import com.example.myapplication.db.Score
+import com.example.myapplication.db.ScoreDB
 import kotlinx.android.synthetic.main.activity_game.view.*
 import kotlinx.android.synthetic.main.activity_main.view.*
 import java.util.*
 import kotlin.random.Random
 
 
-/**
- * This class demonstrates the following interactive game basics:
- *
- * * Manages a rendering thread that draws to a SurfaceView.
- * * Basic game loop that sleeps to conserve resources.
- * * Processes user input to update game state.
- * * Uses clipping as a means of animation.
- *
- * Note that these are basic versions of these techniques.
- * Non-fatal edge cases are not handled.
- * Error handling is minimal. No logging. App assumes and uses a single thread.
- * Additional thread management would otherwise be necessary. See code comments.
- */
 class GameView @JvmOverloads constructor(
     private val mContext: Context,
     attrs: AttributeSet? = null
@@ -51,6 +42,8 @@ class GameView @JvmOverloads constructor(
     var whitePaint = Paint()
     var blackPaint = Paint()
 
+    val db = ScoreDB.getDB(this.context)
+
     var touchX = 0F
     var touchY = 0F
 
@@ -65,13 +58,21 @@ class GameView @JvmOverloads constructor(
     lateinit var retry: Bitmap
     lateinit var save: Bitmap
     lateinit var star: Bitmap
+    lateinit var rankList: List<Score>
+
+    var menu=0
 
     private var score = 0
 
     var life = 3
-    var starArr= arrayListOf<Bitmap>()
+    var starArr = arrayListOf<Bitmap>()
 
     var timer = Timer()
+    var savetimer = Timer()
+
+    var soundPool = SoundPool(1, AudioManager.STREAM_MUSIC, 0)
+    val catch = soundPool.load(this.context, R.raw.touch, 1)
+    val miss = soundPool.load(this.context, R.raw.dead, 1)
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -109,6 +110,7 @@ class GameView @JvmOverloads constructor(
         save = Bitmap.createScaledBitmap(originSave, 200, 200, true)
         star = Bitmap.createScaledBitmap(originStar, 100, 100, true)
 
+
 //        mBitmap = BitmapFactory.decodeResource(
 //            mContext.resources, R.drawable.rocket
 //        )
@@ -121,6 +123,7 @@ class GameView @JvmOverloads constructor(
         starArr.add(star)
         starArr.add(star)
 //        roketArray.add(setUpBitmap())
+
     }
 
     /**
@@ -142,28 +145,58 @@ class GameView @JvmOverloads constructor(
                 blackPaint.color = Color.BLACK
                 blackPaint.textSize = 100F
                 if (life <= 0) {
-                    Log.d("life is under 0", "true")
 
-//                    var whiteboard=RectF(mViewWidth/5F,mViewHeight/5F,mViewWidth*4/5F,mViewHeight*4/5F)
-//                    canvas.drawRect(
-//                        whiteboard,
-//                        whitePaint
-//                    )
-                    canvas.drawBitmap(scoreBoard, mViewWidth / 5F, mViewHeight / 5F, null)
-                    canvas.drawText(
-                        "Score : $score", (mViewWidth * 2 / 5).toFloat(),
-                        mViewHeight * 2 / 5F, whitePaint
-                    )
-                    canvas.drawBitmap(retry, mViewWidth*2 / 6F, mViewHeight*6 / 13F, null)
-                    canvas.drawBitmap(save, mViewWidth*8 / 14F, mViewHeight*6 / 13F, null)
-
-                    if (touchX>mViewWidth*2 / 6F && touchX<mViewWidth*2 / 6F + 200 && touchY>mViewHeight*6 / 13F && touchY<mViewHeight*6 / 13F+200){
-
-                        Log.d("save","click save, ${mViewWidth*2 / 6F}, ${mViewHeight*6 / 13F}")
+//                    if (touchX > mViewWidth * 2 / 6F && touchX < mViewWidth * 2 / 6F + 200 && touchY > mViewHeight * 6 / 13F && touchY < mViewHeight * 6 / 13F + 200) {
+                        if(menu==1) {
+                            Log.d(
+                                "retry",
+                                "click retry, ${mViewWidth * 2 / 6F}, ${mViewHeight * 6 / 13F}"
+                            )
 //                        Toast.makeText(rootView.context,"재시작",Toast.LENGTH_SHORT).show()
-                    }else if(touchX>mViewWidth*2 / 6F && touchX<mViewWidth*2 / 6F + 200 && touchY>mViewHeight*6 / 13F && touchY<mViewHeight*6 / 13F+200){
-                        Toast.makeText(this.context,"저장되었습니다.",Toast.LENGTH_SHORT).show()
-                    }
+//                    } else if (touchX > mViewWidth * 8 / 14F && touchX < mViewWidth * 8 / 14F + 200 && touchY > mViewHeight * 6 / 13F && touchY < mViewHeight * 6 / 13F + 200) {
+                        }else if(menu==2){
+                            Log.d(
+                            "save!!!!",
+                            "click save, $touchX, $touchY,  ${mViewWidth * 8 / 14F}, ${mViewHeight * 6 / 13F}"
+                        )
+//                       1300.957, 604.00635, 676.0, 876.0, 498.46155, 698.46155
+
+                            canvas.drawBitmap(scoreBoard, mViewWidth / 5F, mViewHeight / 5F, null)
+
+                        for(i in 0..2) {
+                            canvas.drawText(
+                                rankList[i].score.toString(),
+                                (mViewWidth /2-150).toFloat(),
+                                mViewHeight * (4 + i) / 10F+50,
+                                whitePaint
+                            )
+                        }
+//                        mPath.rewind()
+//                        canvas.restore()
+//                        mSurfaceHolder.unlockCanvasAndPost(canvas)
+                    }else {
+                            Log.d("life is under 0", "true")
+
+
+                            canvas.drawBitmap(scoreBoard, mViewWidth / 5F, mViewHeight / 5F, null)
+                            canvas.drawText(
+                                "Score : $score", (mViewWidth * 2 / 5).toFloat(),
+                                mViewHeight * 2 / 5F, whitePaint
+                            )
+                            canvas.drawBitmap(
+                                retry,
+                                mViewWidth * 2 / 6F,
+                                mViewHeight * 6 / 13F,
+                                null
+                            )
+                            canvas.drawBitmap(
+                                save,
+                                mViewWidth * 8 / 14F,
+                                mViewHeight * 6 / 13F,
+                                null
+                            )
+                        }
+
 
                 } else {
                     var iter = roketArray.listIterator()
@@ -193,8 +226,8 @@ class GameView @JvmOverloads constructor(
                         }
                     }
 
-                    for(i in 0 until starArr.size-1){
-                        canvas.drawBitmap(star,(mViewWidth-100F*(i+1)),0F,null)
+                    for (i in 0 until starArr.size - 1) {
+                        canvas.drawBitmap(star, (mViewWidth - 100F * (i + 1)), 0F, null)
                     }
 
                     canvas.drawText(
@@ -256,6 +289,7 @@ class GameView @JvmOverloads constructor(
             // Stop the thread == rejoin the main thread.
             mGameThread!!.join()
             timer.cancel()
+            savetimer.cancel()
         } catch (e: InterruptedException) {
         }
     }
@@ -268,6 +302,7 @@ class GameView @JvmOverloads constructor(
         mGameThread = Thread(this)
         mGameThread!!.start()
         timer.schedule(CustomTimer(), 5000, 10000)
+        savetimer.schedule(SoundTimer(),0,300)
     }
 
     fun reset() {
@@ -282,9 +317,25 @@ class GameView @JvmOverloads constructor(
         starArr.add(star)
     }
 
-    fun shake() {
-        val animShake = AnimationUtils.loadAnimation(rootView.context, R.anim.shake)
-        mySurface.startAnimation(animShake)
+    var tscore = 0
+    var tlife = 3
+    fun playSound() {
+
+        if (score > tscore) {
+            soundPool.play(catch, 0.5F, 0.5F, 0, 0, 1.5F)
+            tscore = score
+        }
+        if (tlife > life) {
+            soundPool.play(miss, 0.5F, 0.5F, 0, 0, 1.5F)
+            tlife = life
+        }
+    }
+
+    fun saveScore(curscore: Int) {
+        db.scoreDao().saveScore(Score(score = curscore))
+         var tempList= db.scoreDao().getAllScores()
+        rankList=tempList.subList(0,Math.min(5,tempList.size-1))
+        Log.d("load db", rankList[0].toString())
     }
 
 //    fun time
@@ -296,19 +347,31 @@ class GameView @JvmOverloads constructor(
         var iter = roketArray.listIterator()
         if (event.action == MotionEvent.ACTION_UP) {
 
-            if (life<0){
+            if (life <= 0) {
                 Log.d(
                     "Touch position",
-                    "$x, $y, ${mViewWidth*2 / 6F}, ${mViewWidth*2 / 6F + 200}, ${mViewHeight*6 / 13F}, ${mViewHeight*6 / 13F+200}"
+                    "$x, $y, ${mViewWidth * 2 / 6F}, ${mViewWidth * 2 / 6F + 200}, ${mViewHeight * 6 / 13F}, ${mViewHeight * 6 / 13F + 200}"
                 )
-                if ( x>mViewWidth*2 / 6F && x<(mViewWidth*2 / 6F + 200) && y>mViewHeight*6 / 13F && y<(mViewHeight*6 / 13F+200)){
-                Log.d("click save", "$life")
-                reset()
-                invalidate()
-                touchX = x
-                touchX = y
-            }
-            }else {
+                Log.d("click save", "$x , $y, ${mViewWidth * 8 / 14F} ,${mViewHeight * 6 / 13F} ")
+                if (x > mViewWidth * 2 / 6F && x < (mViewWidth * 2 / 6F + 200) && y > mViewHeight * 6 / 13F && y < (mViewHeight * 6 / 13F + 200)) {
+                    Log.d("click save", "$life")
+                    reset()
+                    invalidate()
+                    touchX = x
+                    touchX = y
+                    menu=1
+                } else if (x > mViewWidth * 8 / 14F && x < mViewWidth * 8 / 14F + 200 && y > mViewHeight * 6 / 13F && y < mViewHeight * 6 / 13F + 200) {
+                    Log.d(
+                        "click save",
+                        "$x , $y, ${mViewWidth * 8 / 14F} ,${y > mViewHeight * 6 / 13F} "
+                    )
+                    invalidate()
+                    touchX = x
+                    touchX = y
+                    menu=2
+                }else menu=0
+
+            } else {
 
                 while (iter.hasNext()) {
                     var bRoket = iter.next()
@@ -336,8 +399,14 @@ class GameView @JvmOverloads constructor(
     inner class CustomTimer : TimerTask() {
         override fun run() {
             roketArray.add(setUpBitmap())
+            saveScore(score)
         }
+    }
 
+    inner class SoundTimer : TimerTask() {
+        override fun run() {
+            playSound()
+        }
     }
 
     init {
@@ -345,6 +414,5 @@ class GameView @JvmOverloads constructor(
         mPaint = Paint()
         mPaint.color = Color.DKGRAY
         mPath = Path()
-
     }
 }

@@ -3,6 +3,8 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.room.Room
+import com.example.myapplication.db.ScoreDB
 
 
 /**
@@ -43,6 +45,8 @@ class MainActivity : AppCompatActivity() {
 
         // Lock orientation into landscape.
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+
+        val db=ScoreDB.getDB(this)
 
         // Create a GameView and bind it to this activity.
         // You don't need a ViewGroup to fill the screen, because the system
